@@ -1,7 +1,13 @@
+# 🏗️ Under Construction
+Final version will be solidified by 2PM PT.
+
 # ASCII Art Service
 
 An HTTP service that accepts an image and returns an ASCII-art rendering
 of it as JSON.
+
+## TLDR;
+WIP
 
 ## 1. Building, running, and testing
 
