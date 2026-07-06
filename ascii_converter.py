@@ -6,8 +6,7 @@ Core logic for converting an image into ASCII art.
 Approach
 --------
 1. Resize the image down to a manageable width (ASCII art at full image
-   resolution is unreadable and unnecessary -- we're going for
-   *resemblance*, not a lossless encoding).
+   resolution is unreadable and unnecessary, since we're going for resemblance).
 2. Convert to grayscale, since brightness (not color) drives the
    character selection.
 3. Map each pixel's brightness (0-255) onto a fixed ramp of characters
@@ -16,10 +15,12 @@ Approach
 
 Known limitations / assumptions
 --------------------------------
-- Color is discarded. This is a deliberate simplification: adding ANSI
-  color codes to the output is a reasonable future extension, but the
-  brief asks for a JSON response, and raw ANSI codes embedded in JSON
-  strings are awkward for API clients to consume. See README for notes.
+- Color is discarded in favor of simplifying output such that it can be
+  wrapped in a JSON response, and raw ANSI codes embedded in JSON
+  strings are awkward for API clients to consume.
+- A minimalist ASCII art ramp is used for character mapping; a more
+  sophisticated ramp could provide finer-grained tonal detail and
+  improve visual fidelity.
 - Monospace fonts are taller than they are wide (roughly 2:1 in most
   terminals), so a naive resize would produce a vertically-stretched
   image. We correct for this with CHAR_ASPECT_CORRECTION.
@@ -31,13 +32,13 @@ from PIL import Image
 import io
 
 # Characters ordered from "visually darkest/densest" to "lightest/sparsest".
-# This particular 10-character ramp is a commonly used one in ASCII art
-# generators because it gives a decent perceptual gradient without being
-# so fine-grained that terminal rendering differences start to matter.
+# This 10-character ramp is a commonly used one in ASCII art (called the "Minimalist Ramp" - https://inkmeascii.com/blog/best-ascii-characters/)
+# generators.
 ASCII_RAMP = "@%#*+=-:. "
 
 # Terminal character cells are roughly twice as tall as they are wide.
-# Without this correction, converted images look vertically stretched.
+# Without this correction, converted images look vertically stretched
+# (see ``What is aspect ratio correction?`` https://theproductguy.in/blogs/image-to-ascii-guide/)
 CHAR_ASPECT_CORRECTION = 0.55
 
 
