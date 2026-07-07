@@ -147,6 +147,6 @@ def convert():
     return jsonify(result), 200
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # set debug=True to enable auto-reload
     app.run(host="0.0.0.0", port=8080, debug=True)

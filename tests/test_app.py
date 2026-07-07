@@ -36,7 +36,6 @@ def test_convert_success(client):
     )
     assert resp.status_code == 200
     body = resp.get_json()
-    print(body)
     assert "ascii_art" in body
     assert body["original_file"] == "test.png"
     assert body["width"] == 100  # default
@@ -58,6 +57,16 @@ def test_convert_missing_file(client):
     resp = client.post("/convert", data={}, content_type="multipart/form-data")
     assert resp.status_code == 400
     assert "error" in resp.get_json()
+
+
+def test_convert_empty_filename(client):
+    resp = client.post(
+        "/convert",
+        data={"image": (io.BytesIO(b""), "")},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Empty filename"}
 
 
 def test_convert_invalid_width(client):
