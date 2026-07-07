@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 
 # Guard against too-large uploads
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MiB
 
 # Hard cap on requested output width, to prevent a client from requesting
 # e.g. width=1000000 and blowing up memory/CPU on the server.
@@ -37,6 +37,10 @@ DOWNLOAD_FILENAME = "ascii_art.txt"
 
 
 def _oversized_upload_response():
+    """
+    Provide a custom response for excessive upload sizes that is detailed and consistent
+    so we can use it for testing.
+    """
     max_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
     return jsonify({"error": f"Image exceeds maximum allowed size of {max_mb}MB"}), 413
 
@@ -133,7 +137,7 @@ def convert():
     result["original_file"] = file.filename
 
     if download:
-        message = "Here is your ASCII art! You may need to adjust the size of your terminal to match the aspect ratio of the image."
+        message = "Here is your ASCII art! You may need to adjust the size of your terminal to fit the full image."
         result = {"message": message, **result}
 
         output_path = os.path.join(os.getcwd(), DOWNLOAD_FILENAME)
