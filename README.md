@@ -91,7 +91,7 @@ curl -X POST "http://localhost:8080/convert?width=80" \
 - Uploaded bytes aren't a decodable image:
   `{ "error": "Could not read image: <underlying PIL error>" }`
 
-**Error response (413):** upload exceeds the 10 MB size limit.
+**Error response (413):** upload exceeds the 10 MiB size limit.
 
 ---
 
@@ -123,8 +123,8 @@ flowchart LR
     Decode -- ok --> Resize["Resize to (width, height)<br/>height = aspect_ratio x width x 0.55"]
     Resize --> Gray["Convert to grayscale ('L' mode)<br/>one brightness value per pixel, 0-255"]
     Gray --> MapLoop["For each pixel:<br/>index = floor(brightness/255 x (len(ramp)-1))<br/>char = ramp[index]"]
-    MapLoop --> Assemble["Join rows into ascii_art string"]
-    Assemble --> Ok200["200 JSON<br/>ascii_art, width, height,<br/>original_width, original_height, filename"]
+    MapLoop --> AsseMiBle["Join rows into ascii_art string"]
+    AsseMiBle --> Ok200["200 JSON<br/>ascii_art, width, height,<br/>original_width, original_height, filename"]
 
     style Err400a fill:#5b2a2a,color:#fff
     style Err400b fill:#5b2a2a,color:#fff
@@ -220,13 +220,13 @@ python -m pytest tests/ -v
   in the request thread. For the expected use case (occasional
   interactive requests) this is fine. Under sustained high load, this
   is the first place to introduce a worker pool / background queue.
-- `MAX_CONTENT_LENGTH` (10 MB) and `MAX_WIDTH` (500 chars) are in place
+- `MAX_CONTENT_LENGTH` (10 MiB) and `MAX_WIDTH` (500 chars) are in place
   specifically to bound worst-case CPU/memory per request.
 
 ### Known Limitations / Assumptions
 - Color is discarded — output is grayscale ASCII only. Color support
   (e.g. ANSI escape codes) is a reasonable future extension but was
-  left out since raw ANSI codes are awkward to embed in a JSON string.
+  left out since raw ANSI codes are awkward to eMiBed in a JSON string.
 - The conversion is intentionally lossy; there's no way to reconstruct
   the source image from the ASCII output.
 - Saved output currently always writes to `ascii_art.txt` in the current
@@ -240,7 +240,7 @@ python -m pytest tests/ -v
   `width >= 1` check). At very small widths, output degrades to a
   sparse, mostly unusable rendering rather than erroring out. Unlike
   `MAX_WIDTH`, a `MIN_WIDTH` needs to be derived from the original image size.
-  A future improvement could compute a minimum width dynamically from the image's aspect ratio, rather than using one fixed number for all images.
+  A future improvement could compute a minimum width dynamically from the image's aspect ratio, rather than using one fixed nuMiBer for all images.
 - The current 10-character ASCII ramp is a coarse
   quantization of the 256 possible brightness levels, which loses
   gradient detail. Smooth transitions in the source image can appear
