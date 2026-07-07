@@ -1,5 +1,5 @@
 
-_Note: The contents of this README were generated with AI assistance and reviewed by a repository maintainer ✍🏻_
+_Note: Some of the contents in this README were generated with AI assistance and reviewed by a repository maintainer ✍🏻_
 
 ---
 
@@ -99,6 +99,8 @@ curl -X POST "http://localhost:8080/convert?width=80" \
 
 ### Service Design
 
+Below is an in-depth overview of the service design, including all possible API responses.
+
 ```mermaid
 flowchart LR
     Client([Client]) --> Route{{app.py: route dispatch}}
@@ -138,7 +140,8 @@ The actual conversion logic lives in `ascii_converter.py`, which is
 what's called in the `/convert` route of the API. This conversion logic
 does a few things:
 
-1. Derive the ASCII-art height (the width is provided by the service) using
+#### 1. Finalize the ASCII-art dimensions
+We derive the ASCII-art height (the width is provided by the service) using
 the aspect ratio of the image and a `CHAR_ASPECT_CORRECTION` value to correct
 for terminal character height/width discrepancies. Below is a breakdown of how
 the algorithm used in the codebase is derived:
@@ -154,34 +157,39 @@ $$
 We multiply by `CHAR_ASPECT_CORRECTION` since our output lands in a terminal:
 
 $$
-{H_{new}} = {{h_{orig}/w_{orig}}} * W_{new} * CHAR_ASPECT_CORRECTION
+{H_{new}} = {{h_{orig}/w_{orig}}} * W_{new} * CORRECTION
 $$
 
 We clamp to the next integer down (floor), and ensure values are >=1:
 
 $$
-{H_{new}} = max(1, floor({{h_{orig}/w_{orig}}} * W_{new} * CHAR_ASPECT_CORRECTION))
+{H_{new}} = max(1, floor({{h_{orig}/w_{orig}}} * W_{new} * CORRECTION))
 $$
 
-2. Use Pillow to resize the image with new dimensions, and convert to grayscale (1
+#### 2. Convert pixels to grayscale
+We use Pillow to resize the image with the new dimensions from Step 1, and convert to grayscale (1
 channel with possible values ranging from 0-255 representing brightness)
 
-3. Collapse the pixels into a 1D list that will be used to iterate through each
-pixel and assign it to an ascii character based on its pixel value (brightness) (`_map_pixel_to_char`). The algorithm for the mapping function is described below:
+#### 3. Map pixel values to ASCII characters
+We collapse the pixels into a 1D list that will be used to iterate through each
+pixel and assign it to an ascii character based on its pixel value (brightness) (`_map_pixel_to_char`). The algorithm for the mapping function is derived below:
 
 We normalize each pixel such that its value ranges from 0-1, where the value represents its relative brightness compared to the max value
 
 $$
+brightness_{norm} = \frac{brightness}{brightness_{max}}
 $$
 
 We blow the pixel back up, this time on a different scale. Rather than the 0-255 scale, we want the pixel to be assigned to one of 10 possible characters from the ASCII ramp (max index 9).
 
 $$
+brightness_{norm} \times index_{max}
 $$
 
 Similar to the $$H_{new}$$ calculation, we clamp this value to the next integer down (floor) since this is an index.
 
 $$
+index = floor(brightness_{norm} \times index_{max})
 $$
 
 ### Running Tests
