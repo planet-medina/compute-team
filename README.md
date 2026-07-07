@@ -94,6 +94,41 @@ curl -X POST "http://localhost:8080/convert?width=80" \
 
 ## For Contributors
 
+### Service Design
+
+```mermaid
+flowchart LR
+    Client([Client]) --> Route{{app.py: route dispatch}}
+
+    Route -->|"GET /health"| Health["health()<br/>always returns 200 ok<br/><i>(liveness check)</i>"]
+    Route -->|"POST /convert"| ConvertRoute["convert()"]
+
+    ConvertRoute --> SizeGate{"upload &gt; 10 MiB?"}
+    SizeGate -- yes --> Err413["413<br/>RequestEntityTooLarge<br/>handled by errorhandler"]
+    SizeGate -- no --> FileCheck{"'image' field present<br/>&amp; filename non-empty?"}
+
+    FileCheck -- no --> Err400a["400<br/>No file / empty filename"]
+    FileCheck -- yes --> WidthCheck{"width parses as int<br/>AND 1 &le; width &le; 500?"}
+
+    WidthCheck -- no --> Err400b["400<br/>width must be int / in range"]
+    WidthCheck -- yes --> Convert["ascii_converter.image_to_ascii(<br/>image_bytes, width, invert)"]
+
+    Convert --> Decode["Pillow: Image.open + .load()"]
+    Decode -->|"corrupt / unreadable bytes"| Err400c["400<br/>Could not read image"]
+    Decode -- ok --> Resize["Resize to (width, height)<br/>height = aspect_ratio x width x 0.55"]
+    Resize --> Gray["Convert to grayscale ('L' mode)<br/>one brightness value per pixel, 0-255"]
+    Gray --> MapLoop["For each pixel:<br/>index = floor(brightness/255 x (len(ramp)-1))<br/>char = ramp[index]"]
+    MapLoop --> Assemble["Join rows into ascii_art string"]
+    Assemble --> Ok200["200 JSON<br/>ascii_art, width, height,<br/>original_width, original_height, filename"]
+
+    style Err400a fill:#5b2a2a,color:#fff
+    style Err400b fill:#5b2a2a,color:#fff
+    style Err400c fill:#5b2a2a,color:#fff
+    style Err413 fill:#5b2a2a,color:#fff
+    style Ok200 fill:#1f4d3d,color:#fff
+    style Health fill:#1f4d3d,color:#fff
+```
+
 ### Running Tests
 
 ```bash
@@ -131,7 +166,19 @@ python -m pytest tests/ -v
   left out since raw ANSI codes are awkward to embed in a JSON string.
 - The conversion is intentionally lossy; there's no way to reconstruct
   the source image from the ASCII output.
-- Single-process, synchronous request handling — no built-in
-  concurrency/queueing. Fine for the current scope; flagged as a
-  discussion point for scaling.
--
+- Saved output currently always writes to `ascii_art.txt` in the current
+  working directory. There is no option to specify a custom filename or
+  destination path.
+- The 10 MiB upload cap (`MAX_CONTENT_LENGTH`) is an arbitrary starting
+  point, not a value derived from load testing. It should be benchmarked
+  against real-world image sizes and server resource limits, then tuned
+  accordingly.
+- There is no dedicated lower bound on `width` (only the implicit
+  `width >= 1` check). At very small widths, output degrades to a
+  sparse, mostly unusable rendering rather than erroring out. Unlike
+  `MAX_WIDTH`, a `MIN_WIDTH` needs to be derived from the original image size.
+  A future improvement could compute a minimum width dynamically from the image's aspect ratio, rather than using one fixed number for all images.
+- The current 10-character ASCII ramp is a coarse
+  quantization of the 256 possible brightness levels, which loses
+  gradient detail. Smooth transitions in the source image can appear
+  as visible "banding" in the output.
