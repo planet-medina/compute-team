@@ -64,7 +64,7 @@ Converts an uploaded image to ASCII art.
 |------------|------|---------|---------------------------------------------------|
 | `width`    | int  | 100     | Output width in characters (max 500)              |
 | `invert`   | bool | false   | Flip dark/light mapping (useful for dark terminals)|
-| `download` | bool | false   | Return ASCII art as a `.txt` file download        |
+| `download` | bool | false   | Write the full result JSON to `ascii_art.txt` in the server's cwd |
 
 **Example:**
 ```bash
@@ -75,8 +75,10 @@ curl -X POST "http://localhost:8080/convert?width=80" \
 **Download example:**
 ```bash
 curl -X POST "http://localhost:8080/convert?download=true" \
-  -F "image=@cat.png" -o cat.txt
+  -F "image=@cat.png"
 ```
+
+With `download=true`, the service writes the full success response as JSON to `ascii_art.txt` in the server's current working directory and returns the same JSON response as a normal request.
 
 **Success response (200):**
 ```json

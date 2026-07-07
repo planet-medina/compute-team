@@ -1,4 +1,5 @@
 import io
+import json
 import pytest
 from PIL import Image
 
@@ -95,7 +96,8 @@ def test_convert_corrupt_file(client):
     assert "error" in resp.get_json()
 
 
-def test_convert_download_true(client):
+def test_convert_download_true(client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     file_data = _sample_image_file()
     resp = client.post(
         "/convert?download=true",
@@ -103,15 +105,19 @@ def test_convert_download_true(client):
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200
-    assert "text/plain" in resp.content_type
-    assert resp.headers["Content-Disposition"] == 'attachment; filename="test.txt"'
+    assert resp.is_json
 
     json_resp = client.post(
         "/convert",
         data={"image": (_sample_image_file(), "test.png")},
         content_type="multipart/form-data",
     )
-    assert resp.data.decode("utf-8") == json_resp.get_json()["ascii_art"]
+    expected = json_resp.get_json()
+    assert resp.get_json() == expected
+
+    output_path = tmp_path / "ascii_art.txt"
+    assert output_path.exists()
+    assert json.loads(output_path.read_text(encoding="utf-8")) == expected
 
 
 def test_convert_oversized_upload(client):
