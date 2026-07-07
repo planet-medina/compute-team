@@ -212,8 +212,10 @@ $$
 
 ### Running Tests
 
+Run tests with an in-terminal code coverage report like so:
+
 ```bash
-python -m pytest tests/ -v
+python -m pytest tests/ -v   --cov=app   --cov=ascii_converter   --cov-report=term-missing
 ```
 
 ### Third-Party Libraries
