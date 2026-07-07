@@ -7,7 +7,7 @@ containing an ASCII-art rendering of that image.
 Run locally with:
     python app.py
 
-Then, from another terminal, send a request using curl:
+Then, from another terminal, send a multi-part/form-data request using cURL:
     curl -X POST "http://localhost:8080/convert?width=80&invert=false" \
       -F "image=@path/to/your/image.png"
 
@@ -120,6 +120,7 @@ def convert():
     if width <= 0 or width > MAX_WIDTH:
         return jsonify({"error": f"width must be between 1 and {MAX_WIDTH}"}), 400
 
+    # Convert the invert and download parameters to actual booleans for python to understand
     invert = request.args.get("invert", "false").lower() == "true"
     download = request.args.get("download", "false").lower() == "true"
 
