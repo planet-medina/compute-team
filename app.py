@@ -11,14 +11,15 @@ Then, from another terminal, send a multi-part/form-data request using cURL:
     curl -X POST "http://localhost:8080/convert?width=80&invert=false" \
       -F "image=@path/to/your/image.png"
 
-You can optionally store your output in a file in your current directory by adding the download=true query parameter:
+You can optionally save the full result JSON to ascii_art.txt in the current working directory by adding the download=true query parameter:
     curl -X POST "http://localhost:8080/convert?width=80&invert=false&download=true" \
-      -F "image=@path/to/your/image.png" > output.txt
+      -F "image=@path/to/your/image.png"
 """
 
-from pathlib import Path
+import json
+import os
 
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify
 from werkzeug.exceptions import RequestEntityTooLarge
 from ascii_converter import image_to_ascii
 
@@ -26,22 +27,22 @@ app = Flask(__name__)
 
 
 # Guard against too-large uploads
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MiB
 
 # Hard cap on requested output width, to prevent a client from requesting
 # e.g. width=1000000 and blowing up memory/CPU on the server.
 MAX_WIDTH = 500
 DEFAULT_WIDTH = 100
+DOWNLOAD_FILENAME = "ascii_art.txt"
 
 
 def _oversized_upload_response():
+    """
+    Provide a custom response for excessive upload sizes that is detailed and consistent
+    so we can use it for testing.
+    """
     max_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
     return jsonify({"error": f"Image exceeds maximum allowed size of {max_mb}MB"}), 413
-
-
-def _download_filename(original_filename: str) -> str:
-    stem = Path(original_filename).stem
-    return f"{stem}.txt" if stem else "ascii_art.txt"
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -71,8 +72,9 @@ def convert():
                 if you're rendering the output on a dark terminal background
                 and want the visual weight to match: dark image regions
                 should look "sparse" on a dark background, not "dense".
-            download (bool) - "true"/"false", default false. When true, returns
-                the ASCII art as a plain-text file download instead of JSON.
+            download (bool) - "true"/"false", default false. When true, writes
+                the full result JSON to ascii_art.txt in the current working
+                directory and returns the same JSON response as download=false.
 
     Response (200), default (download=false):
         {
@@ -85,7 +87,8 @@ def convert():
         }
 
     Response (200), download=true:
-        Plain-text body with Content-Disposition attachment (e.g. cat.txt).
+        Same JSON body as download=false. Additionally writes the full result
+        JSON to ascii_art.txt in the server's current working directory.
 
     Response (400), with example error strings for each case:
         - No "image" field in the request:
@@ -131,18 +134,19 @@ def convert():
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    if download:
-        response = make_response(result["ascii_art"])
-        response.headers["Content-Type"] = "text/plain; charset=utf-8"
-        response.headers["Content-Disposition"] = (
-            f'attachment; filename="{_download_filename(file.filename)}"'
-        )
-        return response, 200
+    result["original_file"] = file.filename
 
-    result["filename"] = file.filename
+    if download:
+        message = "Here is your ASCII art! You may need to adjust the size of your terminal to fit the full image."
+        result = {"message": message, **result}
+
+        output_path = os.path.join(os.getcwd(), DOWNLOAD_FILENAME)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2)
+
     return jsonify(result), 200
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # set debug=True to enable auto-reload
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=True)

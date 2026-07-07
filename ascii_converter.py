@@ -32,17 +32,17 @@ from PIL import Image
 import io
 
 # Characters ordered from "visually darkest/densest" to "lightest/sparsest".
-# This 10-character ramp is a commonly used one in ASCII art (called the "Minimalist Ramp" - https://inkmeascii.com/blog/best-ascii-characters/)
-# generators.
+# This 10-character ramp is a commonly used one in ASCII art generators.
+# (called the "Minimalist Ramp" in https://inkmeascii.com/blog/best-ascii-characters/)
 ASCII_RAMP = "@%#*+=-:. "
 
 # Terminal character cells are roughly twice as tall as they are wide.
-# Without this correction, converted images look vertically stretched
-# (see ``What is aspect ratio correction?`` https://theproductguy.in/blogs/image-to-ascii-guide/)
+# Without this correction, converted images look vertically stretched.
+# (see ``What is aspect ratio correction?`` in https://theproductguy.in/blogs/image-to-ascii-guide/)
 CHAR_ASPECT_CORRECTION = 0.55
 
 
-def _map_pixel_to_char(brightness: int, ramp: str, invert: bool) -> str:
+def _map_pixel_to_char(brightness: int, ramp: str, invert: bool, max_brightness: int = 255) -> str:
     """
     Map a single grayscale pixel value (0-255) to a character in the ramp.
 
@@ -53,9 +53,13 @@ def _map_pixel_to_char(brightness: int, ramp: str, invert: bool) -> str:
     """
     if invert:
         brightness = 255 - brightness
-    # Scale 0-255 down to an index into the ramp string.
-    index = int(brightness / 256 * len(ramp))
-    index = max(0, min(index, len(ramp) - 1))
+    # Scale 0-255 down to an index into the ramp string:
+    max_index = len(ramp) - 1
+    brightness_norm = brightness / max_brightness
+    # Now let's map the normalized pixel values to our new
+    # "scale" (the ASCII ramp). We use int() to round down to the floor integer.
+    index = int(brightness_norm * max_index)
+
     return ramp[index]
 
 
@@ -114,7 +118,9 @@ def image_to_ascii(
     rows = []
     for row_index in range(height):
         row_pixels = pixels[row_index * width : (row_index + 1) * width]
+        # Each pixel in the row is joined into a single string
         row_chars = "".join(_map_pixel_to_char(p, ramp, invert) for p in row_pixels)
+        # Each row is its own element in this list
         rows.append(row_chars)
 
     ascii_art = "\n".join(rows)

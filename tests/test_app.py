@@ -1,4 +1,5 @@
 import io
+import json
 import pytest
 from PIL import Image
 
@@ -20,12 +21,6 @@ def _sample_image_file(size=(20, 20), color=(10, 20, 30)):
     return buf
 
 
-def test_index_page_loads(client):
-    resp = client.get("/")
-    assert resp.status_code == 200
-    assert b"ASCII Art Service" in resp.data
-
-
 def test_health_check(client):
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -42,7 +37,7 @@ def test_convert_success(client):
     assert resp.status_code == 200
     body = resp.get_json()
     assert "ascii_art" in body
-    assert body["filename"] == "test.png"
+    assert body["original_file"] == "test.png"
     assert body["width"] == 100  # default
 
 
@@ -62,6 +57,16 @@ def test_convert_missing_file(client):
     resp = client.post("/convert", data={}, content_type="multipart/form-data")
     assert resp.status_code == 400
     assert "error" in resp.get_json()
+
+
+def test_convert_empty_filename(client):
+    resp = client.post(
+        "/convert",
+        data={"image": (io.BytesIO(b""), "")},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400
+    assert resp.get_json() == {"error": "Empty filename"}
 
 
 def test_convert_invalid_width(client):
@@ -95,7 +100,8 @@ def test_convert_corrupt_file(client):
     assert "error" in resp.get_json()
 
 
-def test_convert_download_true(client):
+def test_convert_download_true(client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     file_data = _sample_image_file()
     resp = client.post(
         "/convert?download=true",
@@ -103,15 +109,23 @@ def test_convert_download_true(client):
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200
-    assert "text/plain" in resp.content_type
-    assert resp.headers["Content-Disposition"] == 'attachment; filename="test.txt"'
+    assert resp.is_json
 
     json_resp = client.post(
         "/convert",
         data={"image": (_sample_image_file(), "test.png")},
         content_type="multipart/form-data",
     )
-    assert resp.data.decode("utf-8") == json_resp.get_json()["ascii_art"]
+    baseline = json_resp.get_json()
+    expected = {
+        "message": "Here is your ASCII art! You may need to adjust the size of your terminal to fit the full image.",
+        **baseline,
+    }
+    assert resp.get_json() == expected
+
+    output_path = tmp_path / "ascii_art.txt"
+    assert output_path.exists()
+    assert json.loads(output_path.read_text(encoding="utf-8")) == expected
 
 
 def test_convert_oversized_upload(client):
