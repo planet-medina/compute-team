@@ -118,7 +118,9 @@ def image_to_ascii(
     rows = []
     for row_index in range(height):
         row_pixels = pixels[row_index * width : (row_index + 1) * width]
+        # Each pixel in the row is joined into a single string
         row_chars = "".join(_map_pixel_to_char(p, ramp, invert) for p in row_pixels)
+        # Each row is its own element in this list
         rows.append(row_chars)
 
     ascii_art = "\n".join(rows)

@@ -132,6 +132,58 @@ flowchart LR
     style Health fill:#1f4d3d,color:#fff
 ```
 
+### Conversion Logic
+
+The actual conversion logic lives in `ascii_converter.py`, which is
+what's called in the `/convert` route of the API. This conversion logic
+does a few things:
+
+1. Derive the ASCII-art height (the width is provided by the service) using
+the aspect ratio of the image and a `CHAR_ASPECT_CORRECTION` value to correct
+for terminal character height/width discrepancies. Below is a breakdown of how
+the algorithm used in the codebase is derived:
+
+$$
+{h_{orig}/w_{orig}} = {H_{new}/W_{new}}
+$$
+
+$$
+{H_{new}} = {{h_{orig}/w_{orig}}} * W_{new}
+$$
+
+We multiply by `CHAR_ASPECT_CORRECTION` since our output lands in a terminal:
+
+$$
+{H_{new}} = {{h_{orig}/w_{orig}}} * W_{new} * CHAR_ASPECT_CORRECTION
+$$
+
+We clamp to the next integer down (floor), and ensure values are >=1:
+
+$$
+{H_{new}} = max(1, floor({{h_{orig}/w_{orig}}} * W_{new} * CHAR_ASPECT_CORRECTION))
+$$
+
+2. Use Pillow to resize the image with new dimensions, and convert to grayscale (1
+channel with possible values ranging from 0-255 representing brightness)
+
+3. Collapse the pixels into a 1D list that will be used to iterate through each
+pixel and assign it to an ascii character based on its pixel value (brightness) (`_map_pixel_to_char`). The algorithm for the mapping function is described below:
+
+We normalize each pixel such that its value ranges from 0-1, where the value represents its relative brightness compared to the max value
+
+$$
+$$
+
+We blow the pixel back up, this time on a different scale. Rather than the 0-255 scale, we want the pixel to be assigned to one of 10 possible characters from the ASCII ramp (max index 9).
+
+$$
+$$
+
+Similar to the $$H_{new}$$ calculation, we clamp this value to the next integer down (floor) since this is an index.
+
+$$
+$$
+
 ### Running Tests
 
 ```bash
