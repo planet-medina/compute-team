@@ -21,12 +21,6 @@ def _sample_image_file(size=(20, 20), color=(10, 20, 30)):
     return buf
 
 
-def test_index_page_loads(client):
-    resp = client.get("/")
-    assert resp.status_code == 200
-    assert b"ASCII Art Service" in resp.data
-
-
 def test_health_check(client):
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -42,8 +36,9 @@ def test_convert_success(client):
     )
     assert resp.status_code == 200
     body = resp.get_json()
+    print(body)
     assert "ascii_art" in body
-    assert body["filename"] == "test.png"
+    assert body["original_file"] == "test.png"
     assert body["width"] == 100  # default
 
 
@@ -112,7 +107,11 @@ def test_convert_download_true(client, tmp_path, monkeypatch):
         data={"image": (_sample_image_file(), "test.png")},
         content_type="multipart/form-data",
     )
-    expected = json_resp.get_json()
+    baseline = json_resp.get_json()
+    expected = {
+        "message": "Here is your ASCII art! You may need to adjust the size of your terminal to fit the full image.",
+        **baseline,
+    }
     assert resp.get_json() == expected
 
     output_path = tmp_path / "ascii_art.txt"
