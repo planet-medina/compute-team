@@ -1,9 +1,12 @@
+
+_Note: The contents of this README were generated with AI assistance and reviewed by a repository maintainer ✍🏻_
+
+---
+
 # ASCII Art Service
 
 An HTTP service that accepts an image and returns an ASCII-art rendering
 of it as JSON.
-
----
 
 ## For Users
 
