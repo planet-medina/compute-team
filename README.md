@@ -27,12 +27,6 @@ python app.py
 ```
 The service listens on `http://localhost:8080`.
 
-For a production-style run:
-```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:8080 app:app
-```
-
 ### API Usage Examples
 
 #### `GET /health`
@@ -60,8 +54,9 @@ Converts an uploaded image to ASCII art.
 |----------|------|---------|-----------------------------------------------------|
 | `width`  | int  | 100     | Output width in characters (max 500)                |
 | `invert` | bool | false   | Flip dark/light mapping (useful for dark terminals) |
+| `download` | bool | false   | Dump JSON response into a file `ascii_art.txt` in current working directory |
 
-**Example:**
+**Example (sans download):**
 ```bash
 curl -X POST "http://localhost:8080/convert?width=80" \
   -F "image=@cat.png"
@@ -78,6 +73,29 @@ curl -X POST "http://localhost:8080/convert?width=80" \
   "filename": "cat.png"
 }
 ```
+
+**Example (with download):**
+```bash
+curl -X POST "http://localhost:8080/convert?width=80?download" \
+  -F "image=@cat.png"
+```
+
+**Success response (200):**
+```json
+{
+  "ascii_art": "@@@@%%%##**++==--::..  \n@@@%%%##**++==--::..   \n...",
+  "width": 80,
+  "height": 36,
+  "original_width": 1920,
+  "original_height": 1080,
+  "filename": "cat.png"
+}
+```
+
+**Output file:**
+
+<img width="524" height="746" alt="image" src="https://github.com/user-attachments/assets/4a2f0d3b-62b7-4a35-b3db-3413fd33f60c" />
+
 
 **Error response (400), with example error strings for each case:**
 - No `image` field provided:
