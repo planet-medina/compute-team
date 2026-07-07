@@ -32,13 +32,13 @@ from PIL import Image
 import io
 
 # Characters ordered from "visually darkest/densest" to "lightest/sparsest".
-# This 10-character ramp is a commonly used one in ASCII art (called the "Minimalist Ramp" - https://inkmeascii.com/blog/best-ascii-characters/)
-# generators.
+# This 10-character ramp is a commonly used one in ASCII art generators.
+# (called the "Minimalist Ramp" in https://inkmeascii.com/blog/best-ascii-characters/)
 ASCII_RAMP = "@%#*+=-:. "
 
 # Terminal character cells are roughly twice as tall as they are wide.
-# Without this correction, converted images look vertically stretched
-# (see ``What is aspect ratio correction?`` https://theproductguy.in/blogs/image-to-ascii-guide/)
+# Without this correction, converted images look vertically stretched.
+# (see ``What is aspect ratio correction?`` in https://theproductguy.in/blogs/image-to-ascii-guide/)
 CHAR_ASPECT_CORRECTION = 0.55
 
 
@@ -55,6 +55,7 @@ def _map_pixel_to_char(brightness: int, ramp: str, invert: bool) -> str:
         brightness = 255 - brightness
     # Scale 0-255 down to an index into the ramp string.
     index = int(brightness / 256 * len(ramp))
+    # Safety clamp to prevent index out of bounds errors (len(ramp)).
     index = max(0, min(index, len(ramp) - 1))
     return ramp[index]
 
