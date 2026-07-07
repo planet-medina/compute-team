@@ -42,7 +42,7 @@ ASCII_RAMP = "@%#*+=-:. "
 CHAR_ASPECT_CORRECTION = 0.55
 
 
-def _map_pixel_to_char(brightness: int, ramp: str, invert: bool) -> str:
+def _map_pixel_to_char(brightness: int, ramp: str, invert: bool, max_brightness: int = 255) -> str:
     """
     Map a single grayscale pixel value (0-255) to a character in the ramp.
 
@@ -53,10 +53,13 @@ def _map_pixel_to_char(brightness: int, ramp: str, invert: bool) -> str:
     """
     if invert:
         brightness = 255 - brightness
-    # Scale 0-255 down to an index into the ramp string.
-    index = int(brightness / 256 * len(ramp))
-    # Safety clamp to prevent index out of bounds errors (len(ramp)).
-    index = max(0, min(index, len(ramp) - 1))
+    # Scale 0-255 down to an index into the ramp string:
+    max_index = len(ramp) - 1
+    brightness_norm = brightness / max_brightness
+    # Now let's map the normalized pixel values to our new
+    # "scale" (the ASCII ramp). We use int() to round down to the floor integer.
+    index = int(brightness_norm * max_index)
+
     return ramp[index]
 
 
